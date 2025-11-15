@@ -33,12 +33,37 @@ build/%.o: src/%.c
 	@mkdir -p build
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# --- Alvos de Teste (Aluno 2) ---
+
+# Alvo para compilar o teste de CPU
+test_cpu: tests/test_cpu.c
+	@mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/test_cpu tests/test_cpu.c
+	@echo "Teste [bin/test_cpu] compilado."
+
+# Alvo para compilar o teste de Memória
+test_memory: tests/test_memory.c
+	@mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/test_memory tests/test_memory.c
+	@echo "Teste [bin/test_memory] compilado."
+
+# Alvo para compilar o teste de I/O
+test_io: tests/test_io.c
+	@mkdir -p bin
+	$(CC) $(CFLAGS) -o bin/test_io tests/test_io.c
+	@echo "Teste [bin/test_io] compilado."
+
+# Alvo para compilar todos os testes de uma vez
+all_tests: test_cpu test_memory test_io
+	@echo "Todos os programas de teste compilados."
+# -------------------------------------
+
 # Regra para limpar os arquivos compilados
 clean:
-	rm -rf build bin $(TARGET)
+	rm -rf build bin
 	@echo "Arquivos compilados removidos."
 
 # Regra para forçar a recompilação
 re: clean all
 
-.PHONY: all clean re
+.PHONY: all clean re test_cpu test_memory test_io all_tests
