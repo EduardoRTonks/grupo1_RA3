@@ -4,6 +4,7 @@
 #include "monitor.h"
 #include "monitor.h"
 #include "namespace.h" 
+#include "cgroup.h"
 // #include "namespace.h" // Descomente para integrar o Aluno 3
 
 int main(int argc, char *argv[]) {
@@ -27,6 +28,7 @@ int main(int argc, char *argv[]) {
     // Precisamos de um ponto de partida para calcular a "diferença"
     CpuMetrics cpu_t1 = get_cpu_metrics(pid);
     IoMetrics io_t1 = get_io_metrics(pid);
+    CgroupMetrics cgroup_t1 = get_cgroup_metrics(pid);
 
     if (cpu_t1.utime == 0 && io_t1.rchar == 0) {
         fprintf(stderr, "Erro ao ler métricas do PID %d. O processo existe?\n", pid);
@@ -40,12 +42,15 @@ int main(int argc, char *argv[]) {
         sleep(INTERVALO_SEGUNDOS);
 
         // --- Obter leituras atuais (T2) ---
+        CgroupMetrics cgroup_t2 = get_cgroup_metrics(pid);
         CpuMetrics cpu_t2 = get_cpu_metrics(pid);
         IoMetrics io_t2 = get_io_metrics(pid);
         // Memória é instantânea, não precisa de T1
         MemoryMetrics mem_t2 = get_memory_metrics(pid);
 
         // --- PASSO 4: Calcular os "Deltas" (T2 - T1) ---
+        
+        unsigned long long delta_cgroup_ns = cgroup_t2.cpu_usage_ns - cgroup_t1.cpu_usage_ns;
         // 
         
         // Delta de CPU (em 'jiffies')
@@ -58,6 +63,9 @@ int main(int argc, char *argv[]) {
         unsigned long long delta_write_bytes = io_t2.wchar - io_t1.wchar;
 
         // --- PASSO 5: Converter Deltas em Percentuais e Taxas ---
+
+        double cgroup_cpu_seconds = (double)delta_cgroup_ns / 1000000000.0;
+        double cgroup_cpu_percent = (cgroup_cpu_seconds / INTERVALO_SEGUNDOS) * 100.0;
 
         // 5.1: Cálculo de CPU %
         // Converte jiffies em segundos: (delta_jiffies / HERTZ)
@@ -77,7 +85,13 @@ int main(int argc, char *argv[]) {
         printf("MEM (Virt): %ld KB\n", mem_t2.vm_size_kb);
         printf("I/O Leitura: %.2f MB/s\n", read_MBs);
         printf("I/O Escrita: %.2f MB/s\n", write_MBs);
-        // ... (impressão de CPU, Mem, I/O) ...
+
+        printf("--- Cgroup Metrics (PID: %d) ---\n", pid);
+        printf("Cgroup CPU: %.2f %% (Total: %.2f s)\n", cgroup_cpu_percent, cgroup_t2.cpu_usage_ns / 1e9);
+        printf("Cgroup Mem: %.1f MB\n", cgroup_t2.memory_usage_bytes / (1024.0 * 1024.0));
+        printf("Cgroup PIDs: %ld\n", cgroup_t2.pids_current);
+        printf("Cgroup I/O R (Total): %.1f MB\n", cgroup_t2.blkio_read_bytes / (1024.0 * 1024.0));
+        printf("Cgroup I/O W (Total): %.1f MB\n", cgroup_t2.blkio_write_bytes / (1024.0 * 1024.0));
 
         printf("\n--- Namespaces (PID: %d) ---\n", pid);
         list_process_namespaces(pid);
@@ -87,6 +101,7 @@ int main(int argc, char *argv[]) {
         // A leitura "agora" (T2) vira a leitura "anterior" (T1) no próximo loop
         cpu_t1 = cpu_t2;
         io_t1 = io_t2;
+        cgroup_t1 = cgroup_t2;
     }
 
     return 0;
