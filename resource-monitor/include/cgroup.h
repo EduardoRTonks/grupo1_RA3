@@ -37,4 +37,15 @@ int cgroup_create(const char *name);
  */
 int cgroup_move_process(pid_t pid, const char *name);
 
+/*
+ * Aplica um limite de Memória (em bytes) a um cgroup
+ */
+int cgroup_set_memory_limit(const char *name, long long bytes);
+
+/*
+ * Aplica um limite de CPU (em "cores") a um cgroup
+ * Ex: 0.5 = 50% de 1 core. 2.0 = 200% (2 cores)
+ */
+int cgroup_set_cpu_limit(const char *name, double cores);
+
 #endif // CGROUP_H

@@ -190,3 +190,57 @@ int cgroup_move_process(pid_t pid, const char *name) {
     if(success) printf("PID %d movido para o cgroup '%s'.\n", pid, name);
     return success;
 }
+
+/*
+ * Aplica um limite de Memória (em bytes)
+ */
+int cgroup_set_memory_limit(const char *name, long long bytes) {
+    char path[512];
+    char value_str[64];
+    
+    snprintf(path, sizeof(path), "/sys/fs/cgroup/memory/%s/memory.limit_in_bytes", name);
+    snprintf(value_str, sizeof(value_str), "%lld", bytes);
+    
+    if (!write_cgroup_file(path, value_str)) {
+        fprintf(stderr, "Falha ao aplicar limite de memória para %s\n", name);
+        return 0;
+    }
+    printf("Limite de memória de %lld bytes aplicado a %s\n", bytes, name);
+    return 1;
+}
+
+/*
+ * Aplica um limite de CPU (em "cores")
+ * Usa um período padrão de 100ms (100000us)
+ */
+int cgroup_set_cpu_limit(const char *name, double cores) {
+    long long period_us = 100000; // 100ms
+    long long quota_us = (long long)(cores * period_us);
+
+    if (quota_us <= 0) {
+        fprintf(stderr, "Valor de 'cores' inválido: %f\n", cores);
+        return 0;
+    }
+
+    char path_period[512], path_quota[512];
+    char value_period[64], value_quota[64];
+
+    // Define o período (100ms)
+    snprintf(path_period, sizeof(path_period), "/sys/fs/cgroup/cpu,cpuacct/%s/cpu.cfs_period_us", name);
+    snprintf(value_period, sizeof(value_period), "%lld", period_us);
+    if (!write_cgroup_file(path_period, value_period)) {
+        fprintf(stderr, "Falha ao aplicar período de CPU para %s\n", name);
+        return 0;
+    }
+
+    // Define a quota (ex: 50000us para 0.5 cores)
+    snprintf(path_quota, sizeof(path_quota), "/sys/fs/cgroup/cpu,cpuacct/%s/cpu.cfs_quota_us", name);
+    snprintf(value_quota, sizeof(value_quota), "%lld", quota_us);
+    if (!write_cgroup_file(path_quota, value_quota)) {
+        fprintf(stderr, "Falha ao aplicar quota de CPU para %s\n", name);
+        return 0;
+    }
+
+    printf("Limite de CPU de %.2f core(s) (quota: %lldus, período: %lldus) aplicado a %s\n", cores, quota_us, period_us, name);
+    return 1;
+}
