@@ -21,6 +21,14 @@ typedef struct {
     unsigned long long rchar; // Bytes lidos
     unsigned long long wchar; // Bytes escritos
 } IoMetrics;
+
+// Struct para guardar métricas de Rede
+typedef struct {
+    unsigned long long rx_bytes;
+    unsigned long long rx_packets;
+    unsigned long long tx_bytes;
+    unsigned long long tx_packets;
+} NetworkMetrics;
 // --------------------
 
 /*
@@ -38,6 +46,11 @@ MemoryMetrics get_memory_metrics(pid_t pid);
  * Coleta métricas de I/O lendo /proc/[pid]/io
  */
 IoMetrics get_io_metrics(pid_t pid);
+
 // --------------------
+/*
+ * Coleta métricas de Rede lendo /proc/[pid]/net/dev
+ */
+NetworkMetrics get_network_metrics(pid_t pid);
 
 #endif // MONITOR_H
