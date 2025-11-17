@@ -9,8 +9,7 @@ TEST_IO_PID=""
 # ! Rode 'lsblk' e veja o número "MAJ:MIN" do seu disco
 # ! (ex: 8:0, 259:0, etc)
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEVICE_ID="8:48"
-# Substitua "8:0" pelo ID correto se o script falhar!
+DEVICE_ID=$(lsblk -d -n -o MAJ:MIN $(findmnt -n -o SOURCE /))
 # -----------------------------------------------------------
 
 cleanup() {
