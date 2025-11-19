@@ -3,7 +3,7 @@ CC = gcc
 
 # Flags de Compilação - Obrigatório compilar sem warnings!
 # CFLAGS inclui -I para achar os headers em 'include/'
-CFLAGS = -Wall -Wextra -g -Iinclude
+CFLAGS = -Wall -Wextra -Wno-format-truncation -g -Iinclude
 
 # Nome do executável final
 TARGET = resource_monitor

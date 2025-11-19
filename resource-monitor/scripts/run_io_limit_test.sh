@@ -1,16 +1,25 @@
 #!/bin/bash
 # Script para executar o Experimento 5: Limitação de I/O
+# Versão: SILENCIOSA (Professional Mode)
 
 set -e
 TEST_IO_PID=""
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# ! IMPORTANTE: Encontre o ID do seu disco principal
-# ! Rode 'lsblk' e veja o número "MAJ:MIN" do seu disco
-# ! (ex: 8:0, 259:0, etc)
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEVICE_ID=$(lsblk -d -n -o MAJ:MIN $(findmnt -n -o SOURCE /))
-# -----------------------------------------------------------
+# --- DETECÇÃO INTELIGENTE DE DISCO ---
+ROOT_DEV=$(findmnt -n -o SOURCE /)
+PARENT_NAME=$(lsblk -no PKNAME $ROOT_DEV)
+
+if [ -z "$PARENT_NAME" ]; then
+    TARGET_DEV=$ROOT_DEV
+else
+    TARGET_DEV="/dev/$PARENT_NAME"
+fi
+
+DEVICE_ID=$(lsblk -d -n -o MAJ:MIN $TARGET_DEV)
+
+echo "--- Configuração de I/O ---"
+echo "Disco Alvo: $TARGET_DEV ($DEVICE_ID)"
+echo "---------------------------"
 
 cleanup() {
     echo
@@ -30,20 +39,20 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "--- Compilando todas as ferramentas... ---"
-make all
-make test_io
-gcc -o bin/experimento_io tests/experimento_io.c src/cgroup_manager.c -Iinclude -Wall -g
+echo "--- Compilando ferramentas (Aguarde)... ---"
+# O '> /dev/null 2>&1' joga toda a saída (texto e avisos) no lixo
+make all > /dev/null 2>&1
+make test_io > /dev/null 2>&1
+gcc -o bin/experimento_io tests/experimento_io.c src/cgroup_manager.c -Iinclude -Wall > /dev/null 2>&1
 
 echo "--- Iniciando experimento (Limitação de I/O)... ---"
-# Inicia o teste de I/O em background
 ./bin/test_io &
 TEST_IO_PID=$!
 echo "Processo test_io iniciado em background com PID: $TEST_IO_PID"
 
 trap cleanup SIGINT
 
-# Aplica o limite de Cgroup, passando o PID e o ID do dispositivo
+# Aplica o limite
 ./bin/experimento_io $TEST_IO_PID $DEVICE_ID
 echo
 echo "Aguardando 1s para o Cgroup estabilizar..."

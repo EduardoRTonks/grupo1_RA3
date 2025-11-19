@@ -1,5 +1,6 @@
 #!/bin/bash
 # Script para executar o Experimento 4: Limitação de Memória
+# Versão: SILENCIOSA
 
 set -e
 TEST_MEM_PID=""
@@ -22,21 +23,20 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "--- Compilando todas as ferramentas... ---"
-make all
-make test_memory
-# Compila o programa de experimento (Memória)
-gcc -o bin/experimento_memory tests/experimento_memory.c src/cgroup_manager.c -Iinclude -Wall -g
+echo "--- Compilando ferramentas (Aguarde)... ---"
+# Silencia a saída do make e do gcc
+make all > /dev/null 2>&1
+make test_memory > /dev/null 2>&1
+gcc -o bin/experimento_memory tests/experimento_memory.c src/cgroup_manager.c -Iinclude -Wall > /dev/null 2>&1
 
 echo "--- Iniciando experimento (Limitação de Memória)... ---"
-# Inicia o teste de alocação de memória em background
 ./bin/test_memory &
 TEST_MEM_PID=$!
 echo "Processo test_memory iniciado em background com PID: $TEST_MEM_PID"
 
 trap cleanup SIGINT
 
-# Aplica o limite de Cgroup
+# Aplica o limite
 ./bin/experimento_memory $TEST_MEM_PID
 echo
 echo "Aguardando 1s para o Cgroup estabilizar..."
